@@ -36,7 +36,7 @@ var input []Node
 
 where
 
-```
+```go
 type Node struct {
 	Tag   string
 	Value interface{}
