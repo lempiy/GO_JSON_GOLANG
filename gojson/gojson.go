@@ -29,7 +29,10 @@ type mapData struct {
 	Type         string
 	AfterClosing bool
 }
-
+// SerializeStruct serializes gojson string using any struct or []struct.
+// Similar to "encoding/json" package it will take json struct tag as a
+// key of json property if it exists. Also, it will ignore json tag value in
+// gojson tag serialization. So `json: "..."` will never be used in gojson.
 func SerializeStruct(s interface{}, trim bool) (string, error) {
 	defer func() {
 		if r := recover(); r != nil {
