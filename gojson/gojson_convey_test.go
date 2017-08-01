@@ -130,7 +130,7 @@ func TestConveySerialize(t *testing.T) {
 			So(err2, ShouldBeNil)
 		})
 
-		Convey("Should return return a valid gojson string", func() {
+		Convey("Should return a valid gojson string", func() {
 			_, _, err := ParseAsArrayOrSlice(r)
 			So(err, ShouldBeNil)
 		})
@@ -142,6 +142,56 @@ func TestConveySerialize(t *testing.T) {
 			So(valueKeyIndex, ShouldBeGreaterThan, -1)
 			valueKeyTagIndex := strings.Index(r, `"colors":["red","blue"]`+
 				"`\"list\": [\"red\", \"blue\", \"green\"]`")
+			So(valueKeyTagIndex, ShouldBeGreaterThan, -1)
+		})
+	})
+}
+
+func TestConveySerializeStruct(t *testing.T) {
+	Convey("Serializing from Struct", t, func() {
+		type Friend struct {
+			Name string `json:"name"`
+			Id int
+		}
+
+		type someStr struct {
+			Name string `json:"name" limit:"10"`
+			Colors []string `json:"colors"`
+			Friends []Friend `json:"friends"`
+		}
+
+		f := Friend{
+			Name: "Simone",
+			Id: 0,
+		}
+		f2 := Friend{
+			Name: "Victor",
+			Id: 1,
+		}
+		te := someStr{
+			Name: "Author",
+			Colors: []string {"red", "blue", "white"},
+			Friends: []Friend{f, f2},
+		}
+
+		re, err := SerializeStruct(te, true)
+
+		Convey("When data is correct it shouldn't return error", func() {
+			So(err, ShouldBeNil)
+		})
+
+		Convey("Should return a valid gojson string", func() {
+			_, _, err := ParseAsArrayOrSlice(re)
+			So(err, ShouldBeNil)
+		})
+
+		Convey("Should have particular values", func() {
+			tagIndex := strings.Index(re, "`limit:\"10\"`")
+			So(tagIndex, ShouldBeGreaterThan, -1)
+			valueKeyIndex := strings.Index(re, `"name":"Simone"`)
+			So(valueKeyIndex, ShouldBeGreaterThan, -1)
+			valueKeyTagIndex := strings.Index(re, `"name":"Author"`+
+				"`limit:\"10\"`")
 			So(valueKeyTagIndex, ShouldBeGreaterThan, -1)
 		})
 	})

@@ -8,6 +8,7 @@ import (
 	"time"
 	"unicode"
 	"unicode/utf8"
+	"reflect"
 )
 
 type Node struct {
@@ -28,6 +29,144 @@ type mapData struct {
 	Type         string
 	AfterClosing bool
 }
+
+func SerializeStruct(s interface{}, trim bool) (string, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println(r)
+		}
+	}()
+	stucV := reflect.ValueOf(s)
+	r, err := getNode(s, stucV)
+	if err != nil {
+		return "", err
+	}
+
+	return Serialize(r.Value, trim)
+}
+
+func getMapFromStruct(s interface{}) (map[string]Node, error) {
+	result := make(map[string]Node)
+	stucV := reflect.ValueOf(s)
+	stucT := reflect.TypeOf(s)
+	n := stucT.NumField()
+
+	for i := 0; i < n; i ++ {
+		var err error
+		field := stucT.Field(i)
+		jsonTag := field.Tag.Get("json")
+		tag := string(field.Tag)
+		name := field.Name
+		if jsonTag != "" {
+			name = jsonTag
+			tag = strings.TrimSpace(
+				strings.Replace(tag, `json:`+`"`+ name +`"`, "", -1),
+			)
+		}
+		value := stucV.Field(i).Interface()
+		stucVV := reflect.ValueOf(value)
+		node, err := getNode(value, stucVV)
+		if err != nil {
+			return nil, err
+		}
+		if tag != "" {
+			node.Tag = tag
+		}
+		result[name] = node
+	}
+	return result, nil
+}
+
+func getSlice(items []interface{}) ([]Node, error) {
+	result := []Node{}
+	for _, item := range items {
+		stucV := reflect.ValueOf(item)
+		node, err := getNode(item, stucV)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, node)
+	}
+
+	return result, nil
+}
+
+func getNode(item interface{}, stucV reflect.Value) (Node, error) {
+	v := Node{}
+	var err error
+
+	switch stucV.Kind() {
+	case reflect.Struct:
+		v.Value, err = getMapFromStruct(item)
+		if err != nil {
+			return v, err
+		}
+	case reflect.Slice:
+		val := interfaceSlice(item)
+		v.Value, err = getSlice(val)
+		if err != nil {
+			return v, err
+		}
+	case reflect.Map:
+		val := interfaceMap(item)
+		v.Value, err = getMap(val)
+		if err != nil {
+			return v, errors.New("Only map[string]interface{} is acceptable")
+		}
+	default:
+		v.Value = item
+	}
+	return v, nil
+}
+
+func interfaceSlice(slice interface{}) []interface{} {
+	s := reflect.ValueOf(slice)
+	if s.Kind() != reflect.Slice {
+		panic("Non-slice value in interfaceSlice argument")
+	}
+
+	ret := make([]interface{}, s.Len())
+
+	for i:=0; i<s.Len(); i++ {
+		ret[i] = s.Index(i).Interface()
+	}
+
+	return ret
+}
+
+func interfaceMap(m interface{}) map[string]interface{} {
+	s := reflect.ValueOf(m)
+	if s.Kind() != reflect.Map {
+		panic("Non-map value in interfaceSlice argument")
+	}
+
+	ret := make(map[string]interface{}, s.Len())
+
+	keys := s.MapKeys()
+
+	for _, key := range keys {
+		value := s.MapIndex(key)
+		ret[key.String()] = value.Interface()
+	}
+
+	return ret
+}
+
+func getMap(items map[string]interface{}) (map[string]Node, error) {
+	result := make(map[string]Node)
+
+	for key, item := range items {
+		stucV := reflect.ValueOf(item)
+		node, err := getNode(item, stucV)
+		if err != nil {
+			return nil, err
+		}
+		result[key] = node
+	}
+
+	return result, nil
+}
+
 
 // Parses gojson by string returns map[string]Data{}||nil, []Data||nil in success and nil
 // or nil, nil, error if fails. Values in map or slice can be: Data (if value is primitive),

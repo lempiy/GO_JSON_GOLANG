@@ -6,6 +6,17 @@ import (
 	"time"
 )
 
+type Friend struct {
+	Name string `json:"name"`
+	Id int
+}
+
+type someStr struct {
+	Name string `json:"name" limit:"10"`
+	Colors []string `json:"colors"`
+	Friends []Friend `json:"friends"`
+}
+
 func main() {
 	jessey := gojson.Node{
 		Value: "Jessey",
@@ -49,15 +60,20 @@ func main() {
 		gojson.Node{Value: "blue"},
 	}, false)
 	fmt.Println(s, err)
-	testJSON := `{
-			"testing": 1 `+"`tag:\"custom\"`"+`,
-			"name": "John Doe",
-			"isActive": true,
-			"colors": [
-				"red",
-				"blue",
-				"green"
-			]`+ "`list: [\"red\", \"blue\", \"green\"]`" +`}`
-	cmp, csl, cerr := gojson.ParseAsArrayOrSlice(testJSON)
-	fmt.Println(cmp, csl, cerr)
+
+	f := Friend{
+		Name: "Simone",
+		Id: 0,
+	}
+	f2 := Friend{
+		Name: "Victor",
+		Id: 1,
+	}
+	te := someStr{
+		Name: "Author",
+		Colors: []string {"red", "blue", "white"},
+		Friends: []Friend{f, f2},
+	}
+	re, err := gojson.SerializeStruct(te, true)
+	fmt.Println(re, err)
 }
