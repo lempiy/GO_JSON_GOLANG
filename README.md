@@ -43,7 +43,7 @@ type Node struct {
 }
 ```
 
-or any custom struct in the same way as `encoding/json` does. In this case,
+or __any custom struct__ in the same way as `encoding/json` does. In this case,
 any tags of the struct except "json" will be used as gojson property tags.
 
 
@@ -70,7 +70,7 @@ _JSON array and nil if value if JSON null._
 
 
 ```go
-func Serialize(interface{}, bool) (string, error)`
+func Serialize(interface{}, bool) (string, error)
 ```
 
 _SerializeMap transforms map[string]Node into gojson string, trim parameter_
