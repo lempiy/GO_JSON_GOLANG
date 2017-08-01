@@ -49,4 +49,15 @@ func main() {
 		gojson.Node{Value: "blue"},
 	}, false)
 	fmt.Println(s, err)
+	testJSON := `{
+			"testing": 1 `+"`tag:\"custom\"`"+`,
+			"name": "John Doe",
+			"isActive": true,
+			"colors": [
+				"red",
+				"blue",
+				"green"
+			]`+ "`list: [\"red\", \"blue\", \"green\"]`" +`}`
+	cmp, csl, cerr := gojson.ParseAsArrayOrSlice(testJSON)
+	fmt.Println(cmp, csl, cerr)
 }

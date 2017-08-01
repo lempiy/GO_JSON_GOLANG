@@ -537,7 +537,11 @@ func serializeMap(m map[string]Node, c serializeConfig, ns int) (string, error) 
 		row = ""
 		i++
 	}
-	result += strings.Repeat(" ", ns-c.BasicSpace) + "}"
+	if !c.Trim {
+		result += strings.Repeat(" ", ns-c.BasicSpace) + "}"
+	} else {
+		result += "}"
+	}
 	return result, nil
 }
 
@@ -595,7 +599,11 @@ func serializeSlice(m []Node, c serializeConfig, ns int) (string, error) {
 		row = ""
 		i++
 	}
-	result += strings.Repeat(" ", ns-c.BasicSpace) + "]"
+	if !c.Trim {
+		result += strings.Repeat(" ", ns-c.BasicSpace) + "]"
+	} else {
+		result += "]"
+	}
 	return result, nil
 }
 
