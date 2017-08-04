@@ -74,6 +74,7 @@ func main() {
 		Colors: []string {"red", "blue", "white"},
 		Friends: []Friend{f, f2},
 	}
-	re, err := gojson.SerializeStruct(te, true)
+	re, err := gojson.SerializeStruct(te, false)
+	gojson.ParseToStruct(&te, re)
 	fmt.Println(re, err)
 }

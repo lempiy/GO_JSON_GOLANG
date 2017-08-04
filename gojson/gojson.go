@@ -29,6 +29,83 @@ type mapData struct {
 	Type         string
 	AfterClosing bool
 }
+func ParseToStruct(struc interface{}, gojson string) error {
+	v := reflect.ValueOf(struc)
+	m, arr, err := ParseAsArrayOrSlice(gojson)
+	if err != nil {
+		return err
+	}
+	var value interface{}
+	var slice []interface{}
+	switch v.Kind() {
+	case reflect.Struct:
+		return errors.New("gojson.ParseToStruct - Parse to non-pointer value.")
+	case reflect.Ptr:
+		parseAsStruct(struc, m)
+	case reflect.Slice:
+		slice = interfaceSlice(v)
+	}
+	return nil
+}
+
+func parseAsStruct(v interface{}, source map[string]Node) error {
+	val := reflect.ValueOf(v).Elem()
+	t := reflect.TypeOf(v)
+	n := t.NumField()
+
+	for i := 0; i < n; i ++ {
+		field := t.Field(i)
+		jsonTag := field.Tag.Get("json")
+		name := field.Name
+		if jsonTag != "" {
+			name = jsonTag
+		}
+		if n, exist := source[name]; exist {
+			f := val.FieldByName(field.Name)
+			setStructValue(f, n.Value)
+		}
+	}
+	return nil
+}
+
+func parseAsStructSlice(slice []interface{}, source []Node) error {
+
+	return nil
+}
+
+func parseAsStructMap(m map[string]interface{}, source map[string]Node) error {
+
+	return nil
+}
+
+func setStructValue(f reflect.Value, newValue interface{}) error {
+	f = f.Elem()
+	if f.IsValid() {
+		if f.CanSet() {
+			switch f.Kind() {
+			case reflect.Struct:
+				valIn := f.Interface()
+				if source, ok := newValue.(map[string]Node); ok {
+					return parseAsStruct(&valIn, source)
+				}
+			case reflect.Slice:
+				if source, ok := newValue.([]Node); ok {
+					slice := interfaceSlice(f.Interface())
+					return parseAsStructSlice(slice, source)
+				}
+			case reflect.Map:
+				if source, ok := newValue.(map[string]Node); ok {
+					m := nodeMap(f.Interface())
+					return parseAsStructMap(m, source)
+				}
+			default:
+				f.Set(reflect.ValueOf(newValue))
+			}
+		}
+	}
+	return nil
+}
+
 // SerializeStruct serializes gojson string using any struct or []struct.
 // Similar to "encoding/json" package it will take json struct tag as a
 // key of json property if it exists. Also, it will ignore json tag value in
@@ -150,6 +227,26 @@ func interfaceMap(m interface{}) map[string]interface{} {
 	for _, key := range keys {
 		value := s.MapIndex(key)
 		ret[key.String()] = value.Interface()
+	}
+
+	return ret
+}
+
+func nodeMap(m interface{}) map[string]Node {
+	s := reflect.ValueOf(m)
+	if s.Kind() != reflect.Map {
+		panic("Non-map value in interfaceSlice argument")
+	}
+
+	ret := make(map[string]Node, s.Len())
+
+	keys := s.MapKeys()
+
+	for _, key := range keys {
+		value := s.MapIndex(key)
+		if n, isOk := value.Interface().(Node); isOk {
+			ret[key.String()] = n
+		}
 	}
 
 	return ret
