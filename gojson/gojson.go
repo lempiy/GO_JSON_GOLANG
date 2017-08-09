@@ -41,14 +41,17 @@ func ParseToStruct(struc interface{}, gojson string) error {
 		return err
 	}
 	switch v.Kind() {
-	case reflect.Struct:
-		return errors.New("gojson.ParseToStruct - Parse to non-pointer value.")
 	case reflect.Ptr:
-		parseAsStruct(v, m)
-	case reflect.Slice:
-		parseAsStructSlice(v, arr)
+		switch v.Elem().Kind() {
+		case reflect.Struct:
+			parseAsStruct(v, m)
+		case reflect.Slice:
+			parseAsStructSlice(v, arr)
+		default:
+			return errors.New("gojson.ParseToStruct - Parse target pointer should point to Struct or Slice.")
+		}
 	default:
-		return errors.New("Wrong source target. Should be slice or pointer to struct.")
+		return errors.New("gojson.ParseToStruct - Parse to non-pointer value.")
 	}
 	return nil
 }
