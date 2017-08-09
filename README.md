@@ -60,6 +60,14 @@ _gojson tag serialization. So `json: "..."` will never be used in gojson._
 
 
 ```go
+func Serialize(interface{}, bool) (string, error)
+```
+
+_SerializeMap transforms map[string]Node into gojson string, trim parameter_
+_responsible for turning on/off whitespacing inside json string._
+
+
+```go
 func ParseAsArrayOrSlice(string) (map[string]Node, []Node, error)
 ```
 
@@ -70,11 +78,11 @@ _JSON array and nil if value if JSON null._
 
 
 ```go
-func Serialize(interface{}, bool) (string, error)
+func ParseToStruct(struc interface{}, gojson string) error
 ```
 
-_SerializeMap transforms map[string]Node into gojson string, trim parameter_
-_responsible for turning on/off whitespacing inside json string._
+_Parses gojson into the struct or slice. Target value for parsing is being passed by pointer._
+_Uses json tag as key optional reference in gojson. Doesn't resets tags of the target struct._
 
 
 
