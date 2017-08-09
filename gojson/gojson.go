@@ -30,27 +30,32 @@ type mapData struct {
 	AfterClosing bool
 }
 func ParseToStruct(struc interface{}, gojson string) error {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println(r)
+		}
+	}()
 	v := reflect.ValueOf(struc)
 	m, arr, err := ParseAsArrayOrSlice(gojson)
 	if err != nil {
 		return err
 	}
-	var value interface{}
-	var slice []interface{}
 	switch v.Kind() {
 	case reflect.Struct:
 		return errors.New("gojson.ParseToStruct - Parse to non-pointer value.")
 	case reflect.Ptr:
-		parseAsStruct(struc, m)
+		parseAsStruct(v, m)
 	case reflect.Slice:
-		slice = interfaceSlice(v)
+		parseAsStructSlice(v, arr)
+	default:
+		return errors.New("Wrong source target. Should be slice or pointer to struct.")
 	}
 	return nil
 }
 
-func parseAsStruct(v interface{}, source map[string]Node) error {
-	val := reflect.ValueOf(v).Elem()
-	t := reflect.TypeOf(v)
+func parseAsStruct(v reflect.Value, source map[string]Node) error {
+	val := v.Elem()
+	t := val.Type()
 	n := t.NumField()
 
 	for i := 0; i < n; i ++ {
@@ -68,35 +73,96 @@ func parseAsStruct(v interface{}, source map[string]Node) error {
 	return nil
 }
 
-func parseAsStructSlice(slice []interface{}, source []Node) error {
-
+func parseAsStructSlice(f reflect.Value, source []Node) error {
+	fType := f.Type()
+	fElemType := f.Type().Elem()
+	slice := reflect.MakeSlice(fType, 0, 0)
+	for _, value := range source {
+		v := reflect.ValueOf(value.Value)
+		switch v.Kind() {
+		case reflect.Slice:
+			sl := reflect.MakeSlice(v.Type(), 0, 0)
+			sourceSl := nodeSlice(value.Value)
+			parseAsStructSlice(sl, sourceSl)
+			slice = reflect.Append(slice, sl)
+		case reflect.Map:
+			mp := nodeMap(value.Value)
+			if fElemType.Kind() == reflect.Struct {
+				val := reflect.New(fElemType)
+				parseAsStruct(val, mp)
+				slice = reflect.Append(slice, val.Elem())
+			} else if fElemType.Kind() == reflect.Ptr {
+				val := reflect.New(f.Elem().Elem().Type())
+				parseAsStruct(val, mp)
+				slice = reflect.Append(slice, val)
+			} else {
+				newMap := reflect.MakeMap(v.Type())
+				parseAsStructMap(newMap, mp)
+				slice = reflect.Append(slice, v)
+			}
+		default:
+			slice = reflect.Append(slice, v)
+		}
+	}
+	f.Set(slice)
 	return nil
 }
 
-func parseAsStructMap(m map[string]interface{}, source map[string]Node) error {
-
+func parseAsStructMap(f reflect.Value, source map[string]Node) error {
+	fType := f.Type()
+	fElemType := f.Type().Elem()
+	m := reflect.MakeMap(fType)
+	for key, value := range source {
+		v := reflect.ValueOf(value.Value)
+		switch v.Kind() {
+		case reflect.Slice:
+			sl := reflect.MakeSlice(v.Type(), 0, 0)
+			sourceSl := nodeSlice(value.Value)
+			parseAsStructSlice(sl, sourceSl)
+			m.SetMapIndex(reflect.ValueOf(key), sl)
+		case reflect.Map:
+			mp := nodeMap(value.Value)
+			if fElemType.Kind() == reflect.Struct {
+				val := reflect.New(fElemType)
+				parseAsStruct(val, mp)
+				m.SetMapIndex(reflect.ValueOf(key), val.Elem())
+			} else if fElemType.Kind() == reflect.Ptr {
+				val := reflect.New(f.Elem().Elem().Type())
+				parseAsStruct(val, mp)
+				m.SetMapIndex(reflect.ValueOf(key), val)
+			} else {
+				newMap := reflect.MakeMap(v.Type())
+				parseAsStructMap(newMap, mp)
+				m.SetMapIndex(reflect.ValueOf(key), newMap)
+			}
+		default:
+			m.SetMapIndex(reflect.ValueOf(key), v)
+		}
+	}
+	f.Set(m)
 	return nil
 }
+
+
 
 func setStructValue(f reflect.Value, newValue interface{}) error {
-	f = f.Elem()
 	if f.IsValid() {
 		if f.CanSet() {
 			switch f.Kind() {
+			case reflect.Ptr:
+				f = f.Elem()
+				fallthrough
 			case reflect.Struct:
-				valIn := f.Interface()
 				if source, ok := newValue.(map[string]Node); ok {
-					return parseAsStruct(&valIn, source)
+					return parseAsStruct(f, source)
 				}
 			case reflect.Slice:
 				if source, ok := newValue.([]Node); ok {
-					slice := interfaceSlice(f.Interface())
-					return parseAsStructSlice(slice, source)
+					return parseAsStructSlice(f, source)
 				}
 			case reflect.Map:
 				if source, ok := newValue.(map[string]Node); ok {
-					m := nodeMap(f.Interface())
-					return parseAsStructMap(m, source)
+					return parseAsStructMap(f, source)
 				}
 			default:
 				f.Set(reflect.ValueOf(newValue))
@@ -232,10 +298,25 @@ func interfaceMap(m interface{}) map[string]interface{} {
 	return ret
 }
 
+func nodeSlice(m interface{}) []Node {
+	s := reflect.ValueOf(m)
+	if s.Kind() != reflect.Slice {
+		panic("Non-slice value in nodeSlice argument")
+	}
+
+	ret := make([]Node, s.Len())
+
+	for i:=0; i<s.Len(); i++ {
+		ret[i] = s.Index(i).Interface().(Node)
+	}
+
+	return ret
+}
+
 func nodeMap(m interface{}) map[string]Node {
 	s := reflect.ValueOf(m)
 	if s.Kind() != reflect.Map {
-		panic("Non-map value in interfaceSlice argument")
+		panic("Non-map value in nodeMap argument")
 	}
 
 	ret := make(map[string]Node, s.Len())

@@ -74,7 +74,8 @@ func main() {
 		Colors: []string {"red", "blue", "white"},
 		Friends: []Friend{f, f2},
 	}
+	te2 := someStr{}
 	re, err := gojson.SerializeStruct(te, false)
-	gojson.ParseToStruct(&te, re)
-	fmt.Println(re, err)
+	gojson.ParseToStruct(&te2, re)
+	fmt.Println("TE2", te2, err)
 }
