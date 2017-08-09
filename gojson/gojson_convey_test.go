@@ -2,41 +2,41 @@ package gojson
 
 import (
 	. "github.com/smartystreets/goconvey/convey"
+	"strings"
 	"testing"
 	"time"
-	"strings"
 )
 
 func TestConveyParseAsArrayOrSlice(t *testing.T) {
 	Convey("Parsing to Slice and Map", t, func() {
 		testJSON := `{
-			"testing": 1 `+"`tag:\"custom\"`"+`,
+			"testing": 1 ` + "`tag:\"custom\"`" + `,
 			"name": "John Doe",
 			"isActive": true,
 			"colors": [
 				"red",
 				"blue",
 				"green"
-			]`+ "`list: [\"red\", \"blue\", \"green\"]`" +`}`
+			]` + "`list: [\"red\", \"blue\", \"green\"]`" + `}`
 		testArray := `[
 			{
 				"name": "nickname",
-				"id": 0 `+"`unique:true`"+`
+				"id": 0 ` + "`unique:true`" + `
 			},
 			{
 				"name": "nickname2",
-				"id": 1 `+"`unique:true`"+`
+				"id": 1 ` + "`unique:true`" + `
 			}
 		]`
 		wrongJSON := `{
-			"testing": mistake 1 `+"`tag:\"custom\"`"+`,
+			"testing": mistake 1 ` + "`tag:\"custom\"`" + `,
 			"name": "John Doe",
 			"isActive": true
 			"colors": [
 				"red",
 				"blue",
 				"green"
-			]`+ "`list: [\"red\", \"blue\", \"green\"]`" +`}`
+			]` + "`list: [\"red\", \"blue\", \"green\"]`" + `}`
 		cmp, _, cerr := ParseAsArrayOrSlice(testJSON)
 		_, asl, _ := ParseAsArrayOrSlice(testArray)
 		_, _, werr := ParseAsArrayOrSlice(wrongJSON)
@@ -124,7 +124,6 @@ func TestConveySerialize(t *testing.T) {
 			Node{Value: "blue"},
 		}, false)
 
-
 		Convey("When data is correct it shouldn't return error", func() {
 			So(err1, ShouldBeNil)
 			So(err2, ShouldBeNil)
@@ -151,26 +150,26 @@ func TestConveySerializeStruct(t *testing.T) {
 	Convey("Serializing from Struct", t, func() {
 		type Friend struct {
 			Name string `json:"name"`
-			Id int
+			Id   int
 		}
 
 		type someStr struct {
-			Name string `json:"name" limit:"10"`
-			Colors []string `json:"colors"`
+			Name    string   `json:"name" limit:"10"`
+			Colors  []string `json:"colors"`
 			Friends []Friend `json:"friends"`
 		}
 
 		f := Friend{
 			Name: "Simone",
-			Id: 0,
+			Id:   0,
 		}
 		f2 := Friend{
 			Name: "Victor",
-			Id: 1,
+			Id:   1,
 		}
 		te := someStr{
-			Name: "Author",
-			Colors: []string {"red", "blue", "white"},
+			Name:    "Author",
+			Colors:  []string{"red", "blue", "white"},
 			Friends: []Friend{f, f2},
 		}
 

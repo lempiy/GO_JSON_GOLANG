@@ -3,12 +3,12 @@ package gojson
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
 	"unicode"
 	"unicode/utf8"
-	"reflect"
 )
 
 type Node struct {
@@ -29,6 +29,10 @@ type mapData struct {
 	Type         string
 	AfterClosing bool
 }
+
+// Parses gojson into the struct or slice. Target value for parsing is being passed by pointer.
+// Uses json tag as key optional reference in gojson. Doesn't resets tags of the target struct.
+// TODO: Parameter whether or not to fill target struct with source tags.
 func ParseToStruct(struc interface{}, gojson string) error {
 	defer func() {
 		if r := recover(); r != nil {
@@ -40,19 +44,18 @@ func ParseToStruct(struc interface{}, gojson string) error {
 	if err != nil {
 		return err
 	}
-	switch v.Kind() {
-	case reflect.Ptr:
-		switch v.Elem().Kind() {
-		case reflect.Struct:
-			parseAsStruct(v, m)
-		case reflect.Slice:
-			parseAsStructSlice(v, arr)
-		default:
-			return errors.New("gojson.ParseToStruct - Parse target pointer should point to Struct or Slice.")
-		}
-	default:
-		return errors.New("gojson.ParseToStruct - Parse to non-pointer value.")
+	if v.Kind() != reflect.Ptr {
+		return errors.New("gojson.ParseToStruct - TypeError. Parse to non-pointer value.")
 	}
+	switch v.Elem().Kind() {
+	case reflect.Struct:
+		parseAsStruct(v, m)
+	case reflect.Slice:
+		parseAsStructSlice(v, arr)
+	default:
+		return errors.New("gojson.ParseToStruct - TypeError. Parse target pointer should point to Struct or Slice.")
+	}
+
 	return nil
 }
 
@@ -61,7 +64,7 @@ func parseAsStruct(v reflect.Value, source map[string]Node) error {
 	t := val.Type()
 	n := t.NumField()
 
-	for i := 0; i < n; i ++ {
+	for i := 0; i < n; i++ {
 		field := t.Field(i)
 		jsonTag := field.Tag.Get("json")
 		name := field.Name
@@ -146,8 +149,6 @@ func parseAsStructMap(f reflect.Value, source map[string]Node) error {
 	return nil
 }
 
-
-
 func setStructValue(f reflect.Value, newValue interface{}) error {
 	if f.IsValid() {
 		if f.CanSet() {
@@ -200,7 +201,7 @@ func getMapFromStruct(s interface{}) (map[string]Node, error) {
 	stucT := reflect.TypeOf(s)
 	n := stucT.NumField()
 
-	for i := 0; i < n; i ++ {
+	for i := 0; i < n; i++ {
 		var err error
 		field := stucT.Field(i)
 		jsonTag := field.Tag.Get("json")
@@ -209,7 +210,7 @@ func getMapFromStruct(s interface{}) (map[string]Node, error) {
 		if jsonTag != "" {
 			name = jsonTag
 			tag = strings.TrimSpace(
-				strings.Replace(tag, `json:`+`"`+ name +`"`, "", -1),
+				strings.Replace(tag, `json:`+`"`+name+`"`, "", -1),
 			)
 		}
 		value := stucV.Field(i).Interface()
@@ -276,7 +277,7 @@ func interfaceSlice(slice interface{}) []interface{} {
 
 	ret := make([]interface{}, s.Len())
 
-	for i:=0; i<s.Len(); i++ {
+	for i := 0; i < s.Len(); i++ {
 		ret[i] = s.Index(i).Interface()
 	}
 
@@ -309,7 +310,7 @@ func nodeSlice(m interface{}) []Node {
 
 	ret := make([]Node, s.Len())
 
-	for i:=0; i<s.Len(); i++ {
+	for i := 0; i < s.Len(); i++ {
 		ret[i] = s.Index(i).Interface().(Node)
 	}
 
@@ -350,7 +351,6 @@ func getMap(items map[string]interface{}) (map[string]Node, error) {
 
 	return result, nil
 }
-
 
 // Parses gojson by string returns map[string]Data{}||nil, []Data||nil in success and nil
 // or nil, nil, error if fails. Values in map or slice can be: Data (if value is primitive),

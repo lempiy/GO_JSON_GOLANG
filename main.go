@@ -8,12 +8,12 @@ import (
 
 type Friend struct {
 	Name string `json:"name"`
-	Id int
+	Id   int
 }
 
 type someStr struct {
-	Name string `json:"name" limit:"10"`
-	Colors []string `json:"colors"`
+	Name    string   `json:"name" limit:"10"`
+	Colors  []string `json:"colors"`
 	Friends []Friend `json:"friends"`
 }
 
@@ -63,15 +63,15 @@ func main() {
 
 	f := Friend{
 		Name: "Simone",
-		Id: 0,
+		Id:   0,
 	}
 	f2 := Friend{
 		Name: "Victor",
-		Id: 1,
+		Id:   1,
 	}
 	te := someStr{
-		Name: "Author",
-		Colors: []string {"red", "blue", "white"},
+		Name:    "Author",
+		Colors:  []string{"red", "blue", "white"},
 		Friends: []Friend{f, f2},
 	}
 	te2 := someStr{}
