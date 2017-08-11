@@ -147,32 +147,32 @@ func TestConveySerialize(t *testing.T) {
 }
 
 func TestConveySerializeStruct(t *testing.T) {
+	type Friend struct {
+		Name string `json:"name"`
+		Id   int
+	}
+
+	type someStr struct {
+		Name    string   `json:"name" limit:"10"`
+		Colors  []string `json:"colors"`
+		Friends []Friend `json:"friends"`
+	}
+
+	f := Friend{
+		Name: "Simone",
+		Id:   0,
+	}
+	f2 := Friend{
+		Name: "Victor",
+		Id:   1,
+	}
+	te := someStr{
+		Name:    "Author",
+		Colors:  []string{"red", "blue", "white"},
+		Friends: []Friend{f, f2},
+	}
+
 	Convey("Serializing from Struct", t, func() {
-		type Friend struct {
-			Name string `json:"name"`
-			Id   int
-		}
-
-		type someStr struct {
-			Name    string   `json:"name" limit:"10"`
-			Colors  []string `json:"colors"`
-			Friends []Friend `json:"friends"`
-		}
-
-		f := Friend{
-			Name: "Simone",
-			Id:   0,
-		}
-		f2 := Friend{
-			Name: "Victor",
-			Id:   1,
-		}
-		te := someStr{
-			Name:    "Author",
-			Colors:  []string{"red", "blue", "white"},
-			Friends: []Friend{f, f2},
-		}
-
 		re, err := SerializeStruct(te, true)
 
 		Convey("When data is correct it shouldn't return error", func() {
@@ -192,6 +192,31 @@ func TestConveySerializeStruct(t *testing.T) {
 			valueKeyTagIndex := strings.Index(re, `"name":"Author"`+
 				"`limit:\"10\"`")
 			So(valueKeyTagIndex, ShouldBeGreaterThan, -1)
+		})
+	})
+
+	Convey("Parsing to struct", t, func() {
+		re, _ := SerializeStruct(te, true)
+
+		obj := someStr{}
+
+		Convey("When passing non-pointer struct should return error", func() {
+			err := ParseToStruct(obj, re)
+			So(err, ShouldNotBeNil)
+		})
+
+		Convey("When passing pointer struct or slice shouldn't return error", func() {
+			err := ParseToStruct(&obj, re)
+			So(err, ShouldBeNil)
+		})
+
+		Convey("Should have particular values", func() {
+			ParseToStruct(&obj, re)
+			So(obj.Name, ShouldEqual, "Author")
+			So(len(obj.Colors), ShouldEqual, 3)
+			So(obj.Colors[0], ShouldEqual, "red")
+			So(len(obj.Friends), ShouldEqual, 2)
+			So(obj.Friends[1].Id, ShouldEqual, 1)
 		})
 	})
 }
